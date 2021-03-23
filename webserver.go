@@ -2,23 +2,35 @@ package main
 
 import (
 	"fmt"
+	"html/template"
+	"log"
 	"net/http"
+	"os"
 )
 
-func hello(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "Hello\n")
-}
+func handleMain(w http.ResponseWriter, r *http.Request) {
 
-func headers(w http.ResponseWriter, req *http.Request) {
-	for name, headers := range req.Header {
-		for _, h := range headers {
-			fmt.Fprintf(w, "%v: %v\n", name, h)
-		}
+	template, err := template.ParseFiles("template/main.html")
+	if err != nil {
+		fmt.Println("Error generating main page: " + err.Error())
+
 	}
+
+	if err := template.Execute(w, nil); err != nil {
+		fmt.Println("Error while executing template: " + err.Error())
+	}
+
 }
 
 func main() {
-	http.HandleFunc("/hello", hello)
-	http.HandleFunc("/headers", headers)
-	http.ListenAndServe(":8090", nil)
+	port := os.Getenv("PORT")
+	if port == "" {
+		fmt.Println("Port not specified, defaulting to Port 8090")
+		port = "8090"
+	}
+	fs := http.FileServer(http.Dir("assets"))
+	http.Handle("/assets/", http.StripPrefix("/assets/", fs))
+
+	http.HandleFunc("/", handleMain)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }
